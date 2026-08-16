@@ -58,8 +58,8 @@ pushes `dev-<sha>` and `dev-latest` to ECR. No stored AWS keys: it assumes
 One-time bootstrap, before the first push:
 
 ```bash
-aws login
-./.github/aws/bootstrap.sh
+aws sso login --profile kreator-admin
+AWS_PROFILE=kreator-admin ./.github/aws/bootstrap.sh
 ```
 
 That creates the `notch-frontend` and `notch-backend` repositories, the OIDC
