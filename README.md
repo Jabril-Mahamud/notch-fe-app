@@ -1,7 +1,13 @@
 # notch-fe-app
 
-The Notch application: FastAPI backend, Next.js frontend. The chart, cluster
-config and GitOps manifests live in the `notch` and `notch-gitops` repos.
+The Notch application: FastAPI backend, Next.js frontend, and the CI that pushes
+both images to ECR. Three repos, split by lifecycle:
+
+| Repo | Holds |
+|---|---|
+| [notch](https://github.com/Jabril-Mahamud/notch) | `cluster.yaml`, the `notch-app` chart |
+| [notch-gitops](https://github.com/Jabril-Mahamud/notch-gitops) | ArgoCD root, addons, Crossplane resources, per-service values |
+| **notch-fe-app** (this one) | This application and its CI |
 
 ## Run it
 
