@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+
+# id-token lets the job mint the OIDC token it trades for the IAM role. No
+# stored AWS keys.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::570056717182:role/notch-gha-ecr
+          aws-region: eu-west-1
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.image }}
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/notch-${{ matrix.image }}:dev-${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/notch-${{ matrix.image }}:dev-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

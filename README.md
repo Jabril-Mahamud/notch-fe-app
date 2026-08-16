@@ -49,6 +49,36 @@ aws secretsmanager create-secret --name notch/dev/apps/notch/NOTCH_JWT_SECRET \
 Auth routes are rate limited per IP (slowapi) and per username, and every form
 carries a `website` honeypot field that must be empty.
 
+## CI
+
+`.github/workflows/build.yml` runs on push to `main`, builds both images and
+pushes `dev-<sha>` and `dev-latest` to ECR. No stored AWS keys: it assumes
+`notch-gha-ecr` through GitHub's OIDC provider.
+
+One-time bootstrap, before the first push:
+
+```bash
+aws login
+./.github/aws/bootstrap.sh
+```
+
+That creates the `notch-frontend` and `notch-backend` repositories, the OIDC
+provider, and the role. The repositories are created by hand deliberately, so CI
+has somewhere to push before Crossplane has ever run — `ecr-repos.yaml` in
+`notch-gitops` carries matching `crossplane.io/external-name` annotations so
+Crossplane adopts them instead of failing on `RepositoryAlreadyExistsException`.
+
+Trust is scoped to `repo:Jabril-Mahamud/notch-fe-app:ref:refs/heads/main`.
+Rename the repo or build from another branch and the assume-role fails — edit
+`.github/aws/trust-policy.json` and re-run the script.
+
+Confirm real images exist before spinning up a cluster:
+
+```bash
+aws ecr list-images --repository-name notch-backend  --region eu-west-1
+aws ecr list-images --repository-name notch-frontend --region eu-west-1
+```
+
 ## Migrations
 
 Alembic runs on container start (`alembic upgrade head` in the backend `CMD`).
