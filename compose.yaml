@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: notch
+      POSTGRES_PASSWORD: notch
+      POSTGRES_DB: notch
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notch -d notch"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    environment:
+      # Same variable names the Helm chart injects, so no code path differs
+      # between Compose and the cluster.
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: notch
+      PGSSLMODE: disable
+      PGUSER: notch
+      PGPASSWORD: notch
+      NOTCH_ENV: local
+      NOTCH_JWT_SECRET: local-dev-not-a-real-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      # Override if something already holds 3000: FRONTEND_PORT=3001 docker compose up
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  pgdata:
