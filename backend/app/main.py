@@ -27,8 +27,10 @@ JWT_TTL = timedelta(days=7)
 # route except the probe target lives under /api.
 app = FastAPI(title="Notch", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-# Per-IP. Behind ingress-nginx this is the real client only if the controller
-# sets use-forwarded-headers and uvicorn runs with --proxy-headers.
+# Per-IP, on the direct peer address. X-Forwarded-For is not trusted yet, so
+# behind ingress-nginx this keys on the ingress pod IP and every client shares
+# one budget - check_username_rate below is the limit that actually bites until
+# then. See the backend Dockerfile for what turning XFF on safely requires.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

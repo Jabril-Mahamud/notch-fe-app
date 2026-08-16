@@ -19,6 +19,14 @@ USER 10001
 
 EXPOSE 8000
 
-# --proxy-headers so get_remote_address sees X-Forwarded-For rather than the
-# ingress-nginx pod IP. Needs use-forwarded-headers on the controller too.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+# X-Forwarded-For is deliberately NOT trusted yet. Behind ingress-nginx the
+# per-IP limiter keys on the ingress pod IP, so it is effectively one shared
+# budget - the per-username limiter is what actually bites until this is done.
+#
+# To turn it on, all three of these have to land together:
+#   1. use-forwarded-headers=true on the ingress-nginx controller
+#   2. uvicorn --proxy-headers --forwarded-allow-ips=<ingress pod CIDR>
+#   3. never --forwarded-allow-ips='*' - that trusts the header from any peer,
+#      so a client spoofs X-Forwarded-For and gets a fresh rate-limit bucket
+#      per forged IP, which defeats the per-IP limit entirely.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
